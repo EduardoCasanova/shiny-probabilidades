@@ -1,0 +1,378 @@
+---
+title: ""
+author: "Eduardo Casanova"
+date: "01/01/2015"
+output:
+  html_document
+runtime: shiny
+---
+
+```{r gnorm, echo=FALSE, message=FALSE}
+gnorm <- function(media = 0, sd = 1, xinf, xsup, xlab = "x", color = "green3"){
+  #función para graficar la curva normal de densidad
+  x <- seq(-4,4,length=1000)*sd + media
+  hx <- dnorm(x,media,sd)
+  png("probabilidad.png",width = 600, height = 600) 
+  plot(x, hx, type="n", xlab="", ylab="", axes=FALSE)
+  
+  i <- x >= xinf & x <= xsup
+  lines(x, hx)
+  polygon(c(xinf,x[i],xsup), c(0,hx[i],0), col= color)
+  area <- pnorm(xsup, media, sd) - pnorm(xinf, media, sd)
+  if (xsup == +Inf || xsup == Inf){
+    result <- paste("P(",xlab,">",xinf,") =",signif(area, digits=4))        
+    }else{
+      if(xinf == -Inf){
+        result <- paste("P(",xlab,"<",xsup,") =",signif(area, digits=4))     
+        }else{
+          result <- paste("P(",xinf,"<", xlab ,"<",xsup,") =",signif(area, digits=4))
+          }
+      }
+  parametros <- paste("media = ", media,"\ndesvio = ", sd)
+  mtext(result, 3, cex = 1.5)
+  mtext(parametros, 3, cex = 1.5, line= -10, adj = 0 )
+  mtext(xlab,1,cex=1.5, line = +2)
+  axis(1, at=c(media - 4 *sd, media, media + 4 *sd, xinf, xsup), pos=0)
+  dev.off()
+  }
+#fin de gnorm ----------------------------------------------------------------
+```
+
+```{r gAcnorm, echo=FALSE, message=FALSE}
+gAcnorm <- function(media = 0, sd = 1, xinf, xsup, xlab = "x", color = "green3"){
+  #Función para graficar la curva normal acumulada
+  
+  x <- seq(-4,4,length=1000)*sd + media
+  hx <- pnorm(x,media,sd)
+  hx1  <- pnorm(x[x>xinf & x<xsup],media,sd) 
+  pinf <- pnorm(xinf,media,sd)
+  psup <- pnorm(xsup,media,sd)
+  
+  png("acumulada.png",width = 600, height = 600)
+  par(mar=c(5,7,4,2))
+  plot(x, hx, type="n", xlab="", ylab="", axes=FALSE)
+  
+  if (color == "#FFFFFF"){
+    color = "#000000"
+    }
+  i <- x >= xinf & x <= xsup
+  lines(x, hx, lwd=1)
+  lines(x[x>xinf & x<xsup], hx1, lwd=10, col= color)
+  
+  segments(xinf,0,xinf,pinf, lty="55")
+  segments(xsup,0,xsup,psup, lty="55")
+  segments(x[1],pinf, xinf, pinf, lty="55")
+  segments(x[1],psup, xsup, psup, lty="55")
+  segments(x[1],pinf,x[1],psup, lwd=10, col = color)
+  
+  area <- pnorm(xsup, media, sd) - pnorm(xinf, media, sd)
+  
+  #textos
+  if (xsup == +Inf || xsup == Inf){
+    result <- paste("P(",xlab,">",xinf,") =",signif(area, digits=4))        
+    }else{
+      if(xinf == -Inf){
+        result <- paste("P(",xlab,"<",xsup,") =",signif(area, digits=4))     
+        }else{
+          result <- paste("P(",xinf,"<", xlab ,"<",xsup,") =",signif(area, digits=4))
+          }
+      }
+  parametros <- paste("media = ", media,"\ndesvio = ", sd)
+  mtext(result, 3, cex = 1.5)
+  mtext(parametros, 3, cex = 1.5, line= -17, adj = 0.9 )
+  mtext(xlab,1,cex=1.5, line = +2)
+  mtext("Probabilidad",2, cex=1.5, line = 4)
+  #ejes
+  axis(1, at=c(media - 4 *sd, media, media + 4 *sd, xinf, xsup), pos=0)
+  axis(2, at=c(0, 1, signif(pinf,4), signif(psup,4)), las = 1)
+  
+  dev.off()
+  }
+#fin de gAcnorm ----------------------------------------------------------------
+```
+
+```{r arnorm, echo=FALSE, message=FALSE}
+# Función que grafica las regiones de aceptacion y rechazo
+arnorm <- function(media = 0, sd = 1, alpha = 0.05, n=1,
+  cola="bi", xlab="", color1, color2){
+  sdx = sd / sqrt(n)
+  if (cola == "bi"){
+    xinf = qnorm(alpha/2, media, sdx, lower.tail = TRUE)
+    xsup = qnorm(alpha/2, media, sdx, lower.tail = FALSE)
+    }else{
+      if (cola=="sup"){
+        xsup = qnorm(alpha, media, sdx, lower.tail = FALSE) 
+        #xinf = -Inf
+        xinf = media - 4 *sdx
+        }else{
+          if (cola=="inf"){
+            xinf = qnorm(alpha, media, sdx, lower.tail = TRUE)
+            xsup = media + 4 *sdx
+            #xsup = +Inf
+            }
+          }
+      
+      
+      }
+  x <- seq(-4,4,length=1000)*sdx + media
+  hx <- dnorm(x,media,sdx)
+  
+  png("hipotesis.png",width = 600, height = 600)    
+  plot(x, hx, type="n", xlab="", ylab="", axes=FALSE)
+  #   lines(x, hx)
+  i <- x >= xinf & x <= xsup
+  polygon(c(xinf,x[i],xsup), c(0,hx[i],0), col=color2)
+  
+  if((cola == "bi") || (cola == "inf")){
+    i <- x >= media - 4 * sdx & x <= xinf
+    
+    polygon(c(media - 4 *sdx ,x[i],xinf), c(0,hx[i],0), col=color1)       
+    }
+  if((cola == "bi") || (cola == "sup")){
+    i <- x >= xsup & x <= media + 4 * sdx 
+    polygon(c(xsup , x[i], media + 4 * sdx), c(0,hx[i],0), col=color1)
+    }
+  axis(1, at=round(c(media - 4 *sdx, media, media + 4 *sdx, xinf, xsup),2), pos=0)
+  #     titulo <- paste("alfa =", alpha)
+  #     mtext(titulo,3, cex = 1.5)
+  parametros <- paste("media = ", media,"\ndesvio = ", sd,"\nalfa =", alpha, "\ndatos =",n)
+  mtext(parametros, 3, cex = 1.5, line= -20, adj = 0 )
+  mtext(xlab,1,cex=1.5, line = +2)  
+  legend("right",legend=c("aceptación","rechazo"),pch=21,cex=1.5,pt.cex=3, bty="n", col ="black", pt.bg=c(color2,color1))
+  dev.off()
+  
+  }
+
+```
+
+
+```{r app, echo=FALSE, message=FALSE}
+require(shinysky)
+
+server <- function(input, output) {
+  
+  output$figDensidad <- renderImage({
+    
+    regcolor = paste0("#",input$colorid1)
+    
+    validate(
+      need(input$sd>0, "El desvío debe ser mayor a 0"),
+      need(input$xinf <= input$xsup , 'Límites invertidos o ausentes')
+      )
+    
+    if (input$limite == "ambos"){
+      gnorm(input$media, input$sd, input$xinf, input$xsup ,
+        input$xlab, color = regcolor)
+      }
+    if (input$limite == "superior"){
+      gnorm(input$media, input$sd, -Inf, input$xsup1, 
+        input$xlab, color = regcolor)
+      }
+    if (input$limite == "inferior"){
+      gnorm(input$media, input$sd, input$xinf1, +Inf, 
+        input$xlab, color = regcolor)
+      }
+    list(src = "probabilidad.png")
+    })  
+  
+  output$figAcumulada <- renderImage({
+    regcolor = paste0("#",input$colorid1)
+    
+    validate(
+      need(input$sd>0, "El desvío debe ser mayor a 0"),
+      need(input$xinf <= input$xsup , 'Límites invertidos o ausentes')
+      )
+    
+    if (input$limite == "ambos"){
+      gAcnorm(input$media, input$sd, input$xinf, input$xsup ,
+        input$xlab, color = regcolor)
+      }
+    if (input$limite == "superior"){
+      gAcnorm(input$media, input$sd, -Inf, input$xsup1,
+        input$xlab, color = regcolor)
+      }
+    if (input$limite == "inferior"){
+      gAcnorm(input$media, input$sd, input$xinf1, +Inf,
+        input$xlab, color = regcolor)
+      }
+    list(src = "acumulada.png")
+    })
+  
+  output$figTest <- renderImage({
+    regcolor1 = paste0("#",input$colorid1)
+    regcolor2 = paste0("#",input$colorid2)
+    
+    validate(
+      need(input$sd>0 , "El desvío debe ser mayor a 0"),
+      need(input$alfa>0, "Alfa debe estar entre 0 y 1"),
+      need(input$alfa<1, "Alfa debe estar entre 0 y 1"),
+      need(!is.integer(input$n), "El número de datos debe ser entero"),
+      need(input$n > 0, "Debe existir por lo menos un dato")
+      )
+    
+    arnorm(input$media, input$sd, input$alfa, input$n, input$cola,
+      input$xlab, color1=regcolor1, color2=regcolor2)
+    list(src = "hipotesis.png")
+    })   
+  #fin de renderImage
+  #fin de server
+  }
+
+
+ui <- shinyUI({fluidPage(
+  h3(style="color: #a0a0ff;
+    text-align: center;",
+    ("Distribución Normal")),
+  sidebarLayout(
+    #sidebarPanel----
+    sidebarPanel(style = "background-color: #f5f5ff;
+      border-radius:20px;",
+      
+      numericInput("media",
+        label = h5("media :"),
+        value = 0
+        ),
+      
+      numericInput("sd",
+        label = h5("desvio :"),
+        value = 1,
+        min = 0.001,
+        step = 0.001
+        ),
+      
+      conditionalPanel(
+        condition = ("input.mostrar != 3"),
+        selectInput("limite", label=h5("límites :"), 
+          choices = c("ambos", "superior", "inferior"),
+          selected = "ambos",
+          width = 120
+          ),
+        
+        conditionalPanel(
+          condition = ("input.limite == 'ambos'"),
+          numericInput("xinf", 
+            label = h5("límite inferior :"), 
+            value = -1,
+            step = 0.1
+            ),   
+          
+          numericInput("xsup", 
+            label = h5("límite superior :"), 
+            value = 1,
+            step = 0.1
+            ) 
+          ),
+        
+        conditionalPanel(
+          condition = "input.limite == 'superior'",
+          
+          numericInput("xsup1", 
+            label = h5("límite superior :"), 
+            value = 1,
+            step = 0.1
+            ) 
+          ),
+        
+        conditionalPanel(
+          condition = "input.limite == 'inferior'",
+          numericInput("xinf1", 
+            label = h5("límite inferior :"), 
+            value = -1,
+            step = 0.1
+            )    
+          )
+        ),
+      
+      conditionalPanel(
+        condition = ("input.mostrar == 3"),
+        selectInput("cola", label=h5("cola :"), 
+          choices = list("bilateral"="bi", "superior"="sup", "inferior"="inf"),
+          selected = "bi",
+          width = 120
+          ),
+        
+        numericInput("alfa", 
+          label = h5("alfa :"), 
+          value = 0.05,
+          step = 0.01
+          ),
+        
+        numericInput("n", 
+          label = h5("número de datos :"), 
+          value = 1,
+          min = 1,
+          step = 1
+          )   
+        ),
+      
+      textInput("xlab",
+        label=h5("variable :"),
+        value = "x"
+        ),
+      
+      h5("color :"),
+      jscolorInput("colorid1"), 
+      
+      conditionalPanel(
+        condition = ("input.mostrar == 3"),
+        jscolorInput("colorid2") 
+        )
+      ),
+    
+    ##MainPanel
+    mainPanel(
+      wellPanel(
+        style = "background-color: #f5f5ff;
+        border-width: 0px;
+        border-radius:20px;
+        padding: 3px 0px 3px 10px ",
+        
+        radioButtons("mostrar", label = "",
+          choices = list("Densidad"=1,
+            "Acumulada"=2,
+            "Prueba de Hipótesis"=3),
+          selected = 1,
+          inline = TRUE
+          )
+        ),
+      
+      conditionalPanel(
+        condition = "input.mostrar == 1",
+        imageOutput("figDensidad")
+        ),
+      
+      conditionalPanel(
+        condition = "input.mostrar == 2",
+        imageOutput("figAcumulada")
+        ),
+      
+      conditionalPanel(
+        condition = "input.mostrar == 3",
+        imageOutput("figTest")
+        )           
+      )
+    )
+  )
+  #fin de ui ............................................................
+  })
+
+shinyApp(ui = ui, server = server,options=list(
+  width="100%", height=720
+  ))
+```
+
+Para **descargar** la figura: hacer *click derecho* sobre la misma y *"Guardar imagen como ..."*
+
+####Notas:  
+La forma de la curva no cambia al modificar los parámetros, ya que está "normalizada": siempre se dibuja con 4 desvios alrededor de la media. 
+
+La *Prueba de hipotesis* está realizada suponiendo condiciones de normalidad. 
+
+Aplicación realizada con [R](http://cran.r-project.org/), [RMarkdown](http://rmarkdown.rstudio.com/) y [Shiny](http://shiny.rstudio.com/).
+
+
+*Eduardo Casanova*  
+
+*Enero 2015*  
+  
+
